@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Order Time Tracker</title>
+
+<!-- Bootstrap 5 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+
+<!-- Fonts: Playfair Display (headings) + Open Sans (body) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#2b2620;
+    --card-red:#a3372f;
+    --card-gold:#b5892b;
+    --paper:#faf7f0;
+    --line:#e4ddcf;
+  }
+  body{
+    font-family:'Open Sans', sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    padding-bottom:3rem;
+  }
+  h1,h2,h3,h4,h5,.brand,.stat-number{
+    font-family:'Playfair Display', serif;
+  }
+  .navbar{
+    background:var(--ink);
+  }
+  .navbar .brand{
+    color:#fff;
+    font-size:1.4rem;
+    font-weight:700;
+    letter-spacing:.02em;
+  }
+  .nav-pills .nav-link{
+    color:var(--ink);
+    font-weight:600;
+  }
+  .nav-pills .nav-link.active{
+    background:var(--card-red);
+  }
+  .card{
+    border:1px solid var(--line);
+    border-radius:.5rem;
+  }
+  .stat-card{
+    text-align:center;
+    padding:1rem;
+  }
+  .stat-number{
+    font-size:2rem;
+    font-weight:700;
+    color:var(--card-red);
+    line-height:1;
+  }
+  .stat-label{
+    font-size:.8rem;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:#6b6459;
+  }
+  .task-badge-inventory{ background:var(--card-gold); }
+  .task-badge-pull{ background:#5b7a8c; }
+  .task-badge-pack{ background:var(--card-red); }
+  .badge{ font-weight:600; }
+  .btn-brand{
+    background:var(--card-red);
+    color:#fff;
+  }
+  .btn-brand:hover{
+    background:#832a24;
+    color:#fff;
+  }
+  .week-nav-btn{
+    font-family:'Playfair Display', serif;
+    font-size:1.1rem;
+  }
+  .entry-row:hover{ background:#f3efe4; }
+  .form-label{ font-weight:600; font-size:.9rem; }
+  #syncStatus{ font-size:.8rem; color:#6b6459; }
+</style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand navbar-dark mb-4">
+  <div class="container-fluid">
+    <span class="brand">Order Time Tracker</span>
+    <span id="syncStatus" class="text-white-50">loading…</span>
+  </div>
+</nav>
+
+<div class="container">
+
+  <ul class="nav nav-pills mb-4" id="mainTabs">
+    <li class="nav-item"><button class="nav-link active" data-tab="log">Log Entry</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="week">This Week</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="history">History</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="settings">Settings</button></li>
+  </ul>
+
+  <!-- LOG ENTRY TAB -->
+  <div class="tab-pane" id="tab-log">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3">New entry</h5>
+        <form id="entryForm" class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-control" id="fDate" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Person</label>
+            <select class="form-select" id="fPerson" required></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Task</label>
+            <select class="form-select" id="fTask" required>
+              <option value="inventory">Add to Inventory</option>
+              <option value="pull">Pull Orders</option>
+              <option value="pack">Pack Orders</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" id="fCountLabel"># Orders in session</label>
+            <input type="number" min="0" class="form-control" id="fCount" value="0">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Start time</label>
+            <input type="time" class="form-control" id="fStart" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">End time</label>
+            <input type="time" class="form-control" id="fEnd" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Notes (optional)</label>
+            <input type="text" class="form-control" id="fNotes" placeholder="e.g. opened a booster box">
+          </div>
+          <div class="col-12">
+            <span id="fPreview" class="text-muted"></span>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-brand">Add entry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <h5 class="mb-3">Today's entries</h5>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr><th>Person</th><th>Task</th><th>Time</th><th>Hours</th><th>Count</th><th>Notes</th><th></th></tr>
+        </thead>
+        <tbody id="todayEntries"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- THIS WEEK TAB -->
+  <div class="tab-pane d-none" id="tab-week">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <button class="btn btn-outline-secondary week-nav-btn" id="prevWeekBtn">&larr; Prev</button>
+      <h4 class="mb-0" id="weekLabel"></h4>
+      <button class="btn btn-outline-secondary week-nav-btn" id="nextWeekBtn">Next &rarr;</button>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-2">
+        <div class="card stat-card"><div class="stat-number" id="wkTotalHours">0</div><div class="stat-label">Total hours</div></div>
+      </div>
+      <div class="col-md-2">
+        <div class="card stat-card"><div class="stat-number" id="wkTotalOrders">0</div><div class="stat-label">Orders processed</div></div>
+      </div>
+      <div class="col-md-2">
+        <div class="card stat-card"><div class="stat-number" id="wkTotalCards">0</div><div class="stat-label">Cards added</div></div>
+      </div>
+      <div class="col-md-2">
+        <div class="card stat-card"><div class="stat-number" id="wkPerHour">–</div><div class="stat-label">$ / hour</div></div>
+      </div>
+      <div class="col-md-2">
+        <div class="card stat-card"><div class="stat-number" id="wkPerOrder">–</div><div class="stat-label">$ / order</div></div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h6 class="card-title">Hours by task</h6>
+            <table class="table table-sm mb-0"><tbody id="wkByTask"></tbody></table>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h6 class="card-title">Hours by person</h6>
+            <table class="table table-sm mb-0"><tbody id="wkByPerson"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <h6 class="card-title">Cards / orders per hour, by task</h6>
+        <table class="table table-sm mb-0"><tbody id="wkOrdersPerHour"></tbody></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <h6 class="card-title">Sales for this week (optional)</h6>
+        <p class="text-muted small">Enter this once you've pulled your weekly sales total, to see rough $/hour and $/order for the week.</p>
+        <div class="row g-2 align-items-end">
+          <div class="col-auto">
+            <label class="form-label">Weekly sales $</label>
+            <input type="number" step="0.01" class="form-control" id="wkSalesInput">
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-brand" id="saveSalesBtn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="tab-pane d-none" id="tab-history">
+    <h5 class="mb-3">All weeks</h5>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr><th>Week</th><th>Hours</th><th>Orders</th><th>Cards added</th><th>Sales</th><th>$/hr</th><th>$/order</th></tr>
+        </thead>
+        <tbody id="historyTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div class="tab-pane d-none" id="tab-settings">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">People</h5>
+        <ul class="list-group mb-3" id="peopleList"></ul>
+        <div class="row g-2 align-items-end">
+          <div class="col-auto">
+            <label class="form-label">Add a person</label>
+            <input type="text" class="form-control" id="newPersonInput" placeholder="Name">
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-brand" id="addPersonBtn">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------- Config ---------- */
+const APPS_SCRIPT_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
+
+/* ---------- State ---------- */
+let state = { people: ["Becca", "Daughter"], entries: [], weeklySales: {} };
+let currentWeekStart = getWeekStart(todayStr());
+
+/* ---------- Helpers ---------- */
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function $(id){ return document.getElementById(id); }
+
+function getWeekStart(dateStr){
+  const d = new Date(dateStr + "T00:00:00");
+  const day = d.getDay(); // 0 = Sunday
+  d.setDate(d.getDate() - day);
+  return d.toISOString().slice(0,10);
+}
+function addDays(dateStr, n){
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0,10);
+}
+function formatWeekLabel(weekStart){
+  const start = new Date(weekStart + "T00:00:00");
+  const end = new Date(addDays(weekStart,6) + "T00:00:00");
+  const opts = { month:'short', day:'numeric' };
+  const startStr = start.toLocaleDateString('en-US', opts);
+  const endStr = end.toLocaleDateString('en-US', {...opts, year:'numeric'});
+  return `${startStr} – ${endStr}`;
+}
+function hoursBetween(start, end){
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  let mins = (eh*60+em) - (sh*60+sm);
+  if (mins < 0) mins += 24*60; // safety, shouldn't happen for same-day sessions
+  return mins/60;
+}
+const TASK_LABELS = { inventory:"Add to Inventory", pull:"Pull Orders", pack:"Pack Orders" };
+const TASK_BADGE = { inventory:"task-badge-inventory", pull:"task-badge-pull", pack:"task-badge-pack" };
+// "inventory" sessions count cards added; "pull"/"pack" sessions count orders processed.
+const TASK_UNIT = { inventory:"cards", pull:"orders", pack:"orders" };
+const TASK_COUNT_LABEL = { inventory:"# Cards added", pull:"# Orders in session", pack:"# Orders in session" };
+function isCardTask(task){ return task === 'inventory'; }
+
+/* ---------- Backend sync ---------- */
+async function loadAll(){
+  $('syncStatus').textContent = 'syncing…';
+  try{
+    const res = await fetch(APPS_SCRIPT_URL);
+    const data = await res.json();
+    state = Object.assign({ people:["Becca","Daughter"], entries:[], weeklySales:{} }, data);
+    $('syncStatus').textContent = 'synced';
+  }catch(err){
+    $('syncStatus').textContent = 'offline (using local data)';
+  }
+  renderAll();
+}
+async function saveAll(){
+  $('syncStatus').textContent = 'saving…';
+  try{
+    await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify(state) });
+    $('syncStatus').textContent = 'synced';
+  }catch(err){
+    $('syncStatus').textContent = 'save failed — check connection';
+  }
+}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('#mainTabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#mainTabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.add('d-none'));
+    $('tab-'+btn.dataset.tab).classList.remove('d-none');
+    renderAll();
+  });
+});
+
+/* ---------- Render ---------- */
+function renderAll(){
+  renderPeopleDropdown();
+  renderTodayEntries();
+  renderWeek();
+  renderHistory();
+  renderSettings();
+}
+
+function renderPeopleDropdown(){
+  const sel = $('fPerson');
+  const current = sel.value;
+  sel.innerHTML = state.people.map(p=>`<option value="${p}">${p}</option>`).join('');
+  if (state.people.includes(current)) sel.value = current;
+}
+
+function renderTodayEntries(){
+  const today = $('fDate').value || todayStr();
+  const rows = state.entries.filter(e=>e.date===today).sort((a,b)=>a.start.localeCompare(b.start));
+  $('todayEntries').innerHTML = rows.map(e=>`
+    <tr class="entry-row">
+      <td>${e.person}</td>
+      <td><span class="badge ${TASK_BADGE[e.task]}">${TASK_LABELS[e.task]}</span></td>
+      <td>${e.start}–${e.end}</td>
+      <td>${hoursBetween(e.start,e.end).toFixed(2)}</td>
+      <td>${e.count} ${TASK_UNIT[e.task]}</td>
+      <td class="text-muted small">${e.notes||''}</td>
+      <td><button class="btn btn-sm btn-outline-danger" data-del="${e.id}">&times;</button></td>
+    </tr>
+  `).join('') || `<tr><td colspan="7" class="text-muted">No entries yet for this date.</td></tr>`;
+}
+
+function weekEntries(weekStart){
+  const weekEnd = addDays(weekStart, 6);
+  return state.entries.filter(e=> e.date >= weekStart && e.date <= weekEnd);
+}
+
+function renderWeek(){
+  $('weekLabel').textContent = formatWeekLabel(currentWeekStart);
+  const entries = weekEntries(currentWeekStart);
+
+  const totalHours = entries.reduce((s,e)=>s+hoursBetween(e.start,e.end),0);
+  const totalOrders = entries.filter(e=>!isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0),0);
+  const totalCards = entries.filter(e=>isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0),0);
+  $('wkTotalHours').textContent = totalHours.toFixed(1);
+  $('wkTotalOrders').textContent = totalOrders;
+  $('wkTotalCards').textContent = totalCards;
+
+  // by task
+  const byTask = {};
+  ['inventory','pull','pack'].forEach(t=>byTask[t]={hours:0, count:0});
+  entries.forEach(e=>{
+    byTask[e.task].hours += hoursBetween(e.start,e.end);
+    byTask[e.task].count += Number(e.count||0);
+  });
+  $('wkByTask').innerHTML = Object.entries(byTask).map(([t,v])=>`
+    <tr><td><span class="badge ${TASK_BADGE[t]}">${TASK_LABELS[t]}</span></td><td class="text-end">${v.hours.toFixed(2)} hrs</td></tr>
+  `).join('');
+  $('wkOrdersPerHour').innerHTML = Object.entries(byTask).map(([t,v])=>`
+    <tr><td><span class="badge ${TASK_BADGE[t]}">${TASK_LABELS[t]}</span></td><td class="text-end">${v.hours>0 ? (v.count/v.hours).toFixed(2) : '–'} ${TASK_UNIT[t]}/hr</td></tr>
+  `).join('');
+
+  // by person
+  const byPerson = {};
+  state.people.forEach(p=>byPerson[p]=0);
+  entries.forEach(e=>{ byPerson[e.person] = (byPerson[e.person]||0) + hoursBetween(e.start,e.end); });
+  $('wkByPerson').innerHTML = Object.entries(byPerson).map(([p,h])=>`
+    <tr><td>${p}</td><td class="text-end">${h.toFixed(2)} hrs</td></tr>
+  `).join('');
+
+  // sales correlation
+  const sales = state.weeklySales[currentWeekStart];
+  $('wkSalesInput').value = sales!=null ? sales : '';
+  $('wkPerHour').textContent = (sales!=null && totalHours>0) ? '$'+(sales/totalHours).toFixed(2) : '–';
+  $('wkPerOrder').textContent = (sales!=null && totalOrders>0) ? '$'+(sales/totalOrders).toFixed(2) : '–';
+}
+
+function allWeekKeys(){
+  const keys = new Set(Object.keys(state.weeklySales));
+  state.entries.forEach(e=> keys.add(getWeekStart(e.date)));
+  return Array.from(keys).sort().reverse();
+}
+
+function renderHistory(){
+  const keys = allWeekKeys();
+  $('historyTable').innerHTML = keys.map(wk=>{
+    const entries = weekEntries(wk);
+    const hours = entries.reduce((s,e)=>s+hoursBetween(e.start,e.end),0);
+    const orders = entries.filter(e=>!isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0),0);
+    const cards = entries.filter(e=>isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0),0);
+    const sales = state.weeklySales[wk];
+    return `<tr>
+      <td>${formatWeekLabel(wk)}</td>
+      <td>${hours.toFixed(1)}</td>
+      <td>${orders}</td>
+      <td>${cards}</td>
+      <td>${sales!=null ? '$'+Number(sales).toFixed(2) : '–'}</td>
+      <td>${(sales!=null && hours>0) ? '$'+(sales/hours).toFixed(2) : '–'}</td>
+      <td>${(sales!=null && orders>0) ? '$'+(sales/orders).toFixed(2) : '–'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" class="text-muted">No entries logged yet.</td></tr>`;
+}
+
+function renderSettings(){
+  $('peopleList').innerHTML = state.people.map(p=>`
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      ${p}
+      <button class="btn btn-sm btn-outline-danger" data-del-person="${p}">Remove</button>
+    </li>
+  `).join('');
+}
+
+/* ---------- Events ---------- */
+$('fDate').value = todayStr();
+$('fDate').addEventListener('change', renderTodayEntries);
+
+function updateCountLabel(){
+  $('fCountLabel').textContent = TASK_COUNT_LABEL[$('fTask').value];
+}
+$('fTask').addEventListener('change', updateCountLabel);
+updateCountLabel();
+
+function updatePreview(){
+  const s = $('fStart').value, e = $('fEnd').value;
+  $('fPreview').textContent = (s && e) ? `Duration: ${hoursBetween(s,e).toFixed(2)} hours` : '';
+}
+$('fStart').addEventListener('change', updatePreview);
+$('fEnd').addEventListener('change', updatePreview);
+
+$('entryForm').addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  const entry = {
+    id: uid(),
+    date: $('fDate').value,
+    person: $('fPerson').value,
+    task: $('fTask').value,
+    start: $('fStart').value,
+    end: $('fEnd').value,
+    count: Number($('fCount').value||0),
+    notes: $('fNotes').value.trim()
+  };
+  if (hoursBetween(entry.start, entry.end) <= 0){
+    alert('End time must be after start time.');
+    return;
+  }
+  state.entries.push(entry);
+  $('fCount').value = 0; $('fNotes').value=''; $('fStart').value=''; $('fEnd').value='';
+  $('fPreview').textContent='';
+  renderAll();
+  await saveAll();
+});
+
+document.addEventListener('click', async (ev)=>{
+  if (ev.target.matches('[data-del]')){
+    state.entries = state.entries.filter(e=>e.id!==ev.target.getAttribute('data-del'));
+    renderAll(); await saveAll();
+  }
+  if (ev.target.matches('[data-del-person]')){
+    const name = ev.target.getAttribute('data-del-person');
+    if (confirm(`Remove ${name} from the people list? (Past entries stay as-is.)`)){
+      state.people = state.people.filter(p=>p!==name);
+      renderAll(); await saveAll();
+    }
+  }
+});
+
+$('addPersonBtn').addEventListener('click', async ()=>{
+  const name = $('newPersonInput').value.trim();
+  if (!name) return;
+  if (!state.people.includes(name)) state.people.push(name);
+  $('newPersonInput').value='';
+  renderAll(); await saveAll();
+});
+
+$('prevWeekBtn').addEventListener('click', ()=>{ currentWeekStart = addDays(currentWeekStart,-7); renderWeek(); });
+$('nextWeekBtn').addEventListener('click', ()=>{ currentWeekStart = addDays(currentWeekStart,7); renderWeek(); });
+
+$('saveSalesBtn').addEventListener('click', async ()=>{
+  const val = $('wkSalesInput').value;
+  if (val === ''){ delete state.weeklySales[currentWeekStart]; }
+  else { state.weeklySales[currentWeekStart] = Number(val); }
+  renderWeek(); renderHistory();
+  await saveAll();
+});
+
+document.addEventListener('visibilitychange', ()=>{
+  if (document.visibilityState === 'visible') loadAll();
+});
+
+loadAll();
+</script>
+</body>
+</html>
