@@ -131,6 +131,10 @@
             <label class="form-label" id="fCountLabel"># Orders in session</label>
             <input type="number" min="0" class="form-control" id="fCount" value="0">
           </div>
+          <div class="col-md-3" id="fCostPerCardWrap">
+            <label class="form-label">Cost per card ($)</label>
+            <input type="number" min="0" step="0.0001" class="form-control" id="fCostPerCard" placeholder="0.0000">
+          </div>
           <div class="col-md-3">
             <label class="form-label">Start time</label>
             <input type="time" class="form-control" id="fStart" required>
@@ -157,7 +161,7 @@
     <div class="table-responsive">
       <table class="table table-hover align-middle">
         <thead>
-          <tr><th>Person</th><th>Task</th><th>Time</th><th>Hours</th><th>Count</th><th>Notes</th><th></th></tr>
+          <tr><th>Person</th><th>Task</th><th>Time</th><th>Hours</th><th>Count</th><th>Cost</th><th>Notes</th><th></th></tr>
         </thead>
         <tbody id="todayEntries"></tbody>
       </table>
@@ -181,6 +185,9 @@
       </div>
       <div class="col-md-2">
         <div class="card stat-card"><div class="stat-number" id="wkTotalCards">0</div><div class="stat-label">Cards added</div></div>
+      </div>
+      <div class="col-md-2">
+        <div class="card stat-card"><div class="stat-number" id="wkInvCost">$0</div><div class="stat-label">Spent on inventory</div></div>
       </div>
       <div class="col-md-2">
         <div class="card stat-card"><div class="stat-number" id="wkPerHour">–</div><div class="stat-label">$ / hour</div></div>
@@ -239,7 +246,7 @@
     <div class="table-responsive">
       <table class="table table-hover align-middle">
         <thead>
-          <tr><th>Week</th><th>Hours</th><th>Orders</th><th>Cards added</th><th>Sales</th><th>$/hr</th><th>$/order</th></tr>
+          <tr><th>Week</th><th>Hours</th><th>Orders</th><th>Cards added</th><th>Inventory cost</th><th>Sales</th><th>$/hr</th><th>$/order</th></tr>
         </thead>
         <tbody id="historyTable"></tbody>
       </table>
@@ -248,7 +255,7 @@
 
   <!-- SETTINGS TAB -->
   <div class="tab-pane d-none" id="tab-settings">
-    <div class="card">
+    <div class="card mb-4">
       <div class="card-body">
         <h5 class="card-title mb-3">People</h5>
         <ul class="list-group mb-3" id="peopleList"></ul>
@@ -263,16 +270,38 @@
         </div>
       </div>
     </div>
+
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Starting inventory baseline</h5>
+        <p class="text-muted small">A one-time lump-sum cost basis for stock you already owned before tracking cost-per-card going forward (e.g. your existing collection). This is separate from the per-card cost you log on new "Add to Inventory" entries.</p>
+        <div class="row g-2 align-items-end mb-3">
+          <div class="col-auto">
+            <label class="form-label">Baseline total cost ($)</label>
+            <input type="number" min="0" step="0.01" class="form-control" id="baselineCostInput">
+          </div>
+          <div class="col-auto">
+            <label class="form-label">Baseline card count</label>
+            <input type="number" min="0" class="form-control" id="baselineCardsInput">
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-brand" id="saveBaselineBtn">Save</button>
+          </div>
+        </div>
+        <p class="mb-0"><strong>Total cost basis to date:</strong> <span id="totalCostBasis">$0.00</span>
+          <span class="text-muted small">(baseline + all logged inventory-add costs)</span></p>
+      </div>
+    </div>
   </div>
 
 </div>
 
 <script>
 /* ---------- Config ---------- */
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxl6HTyCwfRFYqdBpcrB2g8gFFeBg73lXs8RMcOjtQ3hGbjvPXCDqhhg3enK1IXotKA/exec";
+const APPS_SCRIPT_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
 
 /* ---------- State ---------- */
-let state = { people: ["Becca", "Daughter"], entries: [], weeklySales: {} };
+let state = { people: ["Becca", "Daughter"], entries: [], weeklySales: {}, baseline: { cost: 0, cards: 0 } };
 let currentWeekStart = getWeekStart(todayStr());
 
 /* ---------- Helpers ---------- */
@@ -319,7 +348,7 @@ async function loadAll(){
   try{
     const res = await fetch(APPS_SCRIPT_URL);
     const data = await res.json();
-    state = Object.assign({ people:["Becca","Daughter"], entries:[], weeklySales:{} }, data);
+    state = Object.assign({ people:["Becca","Daughter"], entries:[], weeklySales:{}, baseline:{cost:0,cards:0} }, data);
     $('syncStatus').textContent = 'synced';
   }catch(err){
     $('syncStatus').textContent = 'offline (using local data)';
@@ -373,10 +402,11 @@ function renderTodayEntries(){
       <td>${e.start}–${e.end}</td>
       <td>${hoursBetween(e.start,e.end).toFixed(2)}</td>
       <td>${e.count} ${TASK_UNIT[e.task]}</td>
+      <td>${isCardTask(e.task) && e.costPerCard ? '$'+(e.count*e.costPerCard).toFixed(2)+' ('+e.costPerCard.toFixed(4)+'/card)' : '–'}</td>
       <td class="text-muted small">${e.notes||''}</td>
       <td><button class="btn btn-sm btn-outline-danger" data-del="${e.id}">&times;</button></td>
     </tr>
-  `).join('') || `<tr><td colspan="7" class="text-muted">No entries yet for this date.</td></tr>`;
+  `).join('') || `<tr><td colspan="8" class="text-muted">No entries yet for this date.</td></tr>`;
 }
 
 function weekEntries(weekStart){
@@ -391,9 +421,11 @@ function renderWeek(){
   const totalHours = entries.reduce((s,e)=>s+hoursBetween(e.start,e.end),0);
   const totalOrders = entries.filter(e=>!isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0),0);
   const totalCards = entries.filter(e=>isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0),0);
+  const invCost = entries.filter(e=>isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0)*Number(e.costPerCard||0),0);
   $('wkTotalHours').textContent = totalHours.toFixed(1);
   $('wkTotalOrders').textContent = totalOrders;
   $('wkTotalCards').textContent = totalCards;
+  $('wkInvCost').textContent = '$'+invCost.toFixed(2);
 
   // by task
   const byTask = {};
@@ -437,17 +469,19 @@ function renderHistory(){
     const hours = entries.reduce((s,e)=>s+hoursBetween(e.start,e.end),0);
     const orders = entries.filter(e=>!isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0),0);
     const cards = entries.filter(e=>isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0),0);
+    const invCost = entries.filter(e=>isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0)*Number(e.costPerCard||0),0);
     const sales = state.weeklySales[wk];
     return `<tr>
       <td>${formatWeekLabel(wk)}</td>
       <td>${hours.toFixed(1)}</td>
       <td>${orders}</td>
       <td>${cards}</td>
+      <td>$${invCost.toFixed(2)}</td>
       <td>${sales!=null ? '$'+Number(sales).toFixed(2) : '–'}</td>
       <td>${(sales!=null && hours>0) ? '$'+(sales/hours).toFixed(2) : '–'}</td>
       <td>${(sales!=null && orders>0) ? '$'+(sales/orders).toFixed(2) : '–'}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="7" class="text-muted">No entries logged yet.</td></tr>`;
+  }).join('') || `<tr><td colspan="8" class="text-muted">No entries logged yet.</td></tr>`;
 }
 
 function renderSettings(){
@@ -457,6 +491,13 @@ function renderSettings(){
       <button class="btn btn-sm btn-outline-danger" data-del-person="${p}">Remove</button>
     </li>
   `).join('');
+
+  $('baselineCostInput').value = state.baseline.cost || '';
+  $('baselineCardsInput').value = state.baseline.cards || '';
+  const loggedCost = state.entries.filter(e=>isCardTask(e.task))
+    .reduce((s,e)=>s+Number(e.count||0)*Number(e.costPerCard||0),0);
+  const totalBasis = Number(state.baseline.cost||0) + loggedCost;
+  $('totalCostBasis').textContent = '$'+totalBasis.toFixed(2);
 }
 
 /* ---------- Events ---------- */
@@ -465,6 +506,7 @@ $('fDate').addEventListener('change', renderTodayEntries);
 
 function updateCountLabel(){
   $('fCountLabel').textContent = TASK_COUNT_LABEL[$('fTask').value];
+  $('fCostPerCardWrap').classList.toggle('d-none', !isCardTask($('fTask').value));
 }
 $('fTask').addEventListener('change', updateCountLabel);
 updateCountLabel();
@@ -486,6 +528,7 @@ $('entryForm').addEventListener('submit', async (ev)=>{
     start: $('fStart').value,
     end: $('fEnd').value,
     count: Number($('fCount').value||0),
+    costPerCard: isCardTask($('fTask').value) ? Number($('fCostPerCard').value||0) : null,
     notes: $('fNotes').value.trim()
   };
   if (hoursBetween(entry.start, entry.end) <= 0){
@@ -493,7 +536,7 @@ $('entryForm').addEventListener('submit', async (ev)=>{
     return;
   }
   state.entries.push(entry);
-  $('fCount').value = 0; $('fNotes').value=''; $('fStart').value=''; $('fEnd').value='';
+  $('fCount').value = 0; $('fCostPerCard').value=''; $('fNotes').value=''; $('fStart').value=''; $('fEnd').value='';
   $('fPreview').textContent='';
   renderAll();
   await saveAll();
@@ -529,6 +572,15 @@ $('saveSalesBtn').addEventListener('click', async ()=>{
   if (val === ''){ delete state.weeklySales[currentWeekStart]; }
   else { state.weeklySales[currentWeekStart] = Number(val); }
   renderWeek(); renderHistory();
+  await saveAll();
+});
+
+$('saveBaselineBtn').addEventListener('click', async ()=>{
+  state.baseline = {
+    cost: Number($('baselineCostInput').value||0),
+    cards: Number($('baselineCardsInput').value||0)
+  };
+  renderSettings();
   await saveAll();
 });
 
