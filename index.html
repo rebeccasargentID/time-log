@@ -555,7 +555,7 @@
 
                 <div class="col-12">
                   <h2 class="section-title">Connection</h2>
-                  <label class="form-label" for="backendUrl">https://script.google.com/macros/s/AKfycbydkiu19_q4TXTfn3NKUnl7bw0NK5CjRDkouh8cUstV96DDnYLJK3H1Z6K2mNqDeLU/exec</label>
+                  <label class="form-label" for="backendUrl">Apps Script Web App URL</label>
                   <input class="form-control mb-2" id="backendUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
                   <div class="d-flex flex-wrap gap-2 mb-2">
                     <button class="btn btn-primary" type="button" id="saveBackend">
@@ -585,7 +585,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Paste your Apps Script Web App URL here to bake it into the HTML for every device.
+    // Example: const APPS_SCRIPT_URL = "https://script.google.com/macros/s/abc123/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxrUGjxyRLcYvOzrctx-e5PNkpNoPfIsqtE4YUD0YnvC_IMFqgF2ZNE-vHlAHbeQoxL/exec";
+
     const STORAGE_KEY = "tcgTrackerStateV1";
+    const BACKEND_OVERRIDE_KEY = "tcgTrackerBackendUrl";
     const TASKS = ["Add to Inventory", "Pull Orders", "Pack Orders"];
 
     const defaultState = {
@@ -655,12 +660,12 @@
       const now = new Date();
       el.startTime.value = `${String(now.getHours()).padStart(2, "0")}:00`;
       el.endTime.value = `${String(now.getHours() + 1).padStart(2, "0")}:00`;
-      el.backendUrl.value = localStorage.getItem("tcgTrackerBackendUrl") || "";
+      el.backendUrl.value = localStorage.getItem(BACKEND_OVERRIDE_KEY) || APPS_SCRIPT_URL || "";
 
       wireEvents();
       render();
       updateCountLabel();
-      setSyncStatus(el.backendUrl.value ? "Ready" : "Not connected", el.backendUrl.value ? "ok" : "");
+      setSyncStatus(getBackendUrl() ? "Ready" : "Not connected", getBackendUrl() ? "ok" : "");
       loadFromBackend({ silent: true });
       lucide.createIcons();
     }
@@ -789,7 +794,7 @@
     }
 
     function getBackendUrl() {
-      return (localStorage.getItem("tcgTrackerBackendUrl") || "").trim();
+      return (localStorage.getItem(BACKEND_OVERRIDE_KEY) || APPS_SCRIPT_URL || "").trim();
     }
 
     function saveBackendUrl() {
@@ -798,9 +803,13 @@
         showMessage("That does not look like an Apps Script web app URL ending in /exec.", "warning");
         return;
       }
-      localStorage.setItem("tcgTrackerBackendUrl", url);
-      setSyncStatus(url ? "Ready" : "Not connected", url ? "ok" : "");
-      showMessage(url ? "Connection URL saved." : "Connection URL cleared.", "success");
+      if (url && url !== APPS_SCRIPT_URL) {
+        localStorage.setItem(BACKEND_OVERRIDE_KEY, url);
+      } else {
+        localStorage.removeItem(BACKEND_OVERRIDE_KEY);
+      }
+      setSyncStatus(getBackendUrl() ? "Ready" : "Not connected", getBackendUrl() ? "ok" : "");
+      showMessage(getBackendUrl() ? "Connection URL saved." : "Connection URL cleared.", "success");
     }
 
     async function testConnection() {
