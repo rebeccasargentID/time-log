@@ -1,603 +1,1259 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Order Time Tracker</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TCG Time + Cost Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --ink: #17201b;
+      --muted: #66736d;
+      --line: #dbe5df;
+      --panel: #ffffff;
+      --wash: #f5f8f6;
+      --leaf: #2f6d57;
+      --leaf-dark: #214d3e;
+      --gold: #b47b25;
+      --rose: #a85662;
+      --blue: #2f6690;
+    }
 
-<!-- Bootstrap 5 -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    * { box-sizing: border-box; }
 
-<!-- Fonts: Playfair Display (headings) + Open Sans (body) -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f8faf9 0%, #eef5f1 100%);
+      color: var(--ink);
+      font-family: "Open Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
 
-<style>
-  :root{
-    --ink:#2b2620;
-    --card-red:#a3372f;
-    --card-gold:#b5892b;
-    --paper:#faf7f0;
-    --line:#e4ddcf;
-  }
-  body{
-    font-family:'Open Sans', sans-serif;
-    background:var(--paper);
-    color:var(--ink);
-    padding-bottom:3rem;
-  }
-  h1,h2,h3,h4,h5,.brand,.stat-number{
-    font-family:'Playfair Display', serif;
-  }
-  .navbar{
-    background:var(--ink);
-  }
-  .navbar .brand{
-    color:#fff;
-    font-size:1.4rem;
-    font-weight:700;
-    letter-spacing:.02em;
-  }
-  .nav-pills .nav-link{
-    color:var(--ink);
-    font-weight:600;
-  }
-  .nav-pills .nav-link.active{
-    background:var(--card-red);
-  }
-  .card{
-    border:1px solid var(--line);
-    border-radius:.5rem;
-  }
-  .stat-card{
-    text-align:center;
-    padding:1rem;
-  }
-  .stat-number{
-    font-size:2rem;
-    font-weight:700;
-    color:var(--card-red);
-    line-height:1;
-  }
-  .stat-label{
-    font-size:.8rem;
-    text-transform:uppercase;
-    letter-spacing:.06em;
-    color:#6b6459;
-  }
-  .task-badge-inventory{ background:var(--card-gold); }
-  .task-badge-pull{ background:#5b7a8c; }
-  .task-badge-pack{ background:var(--card-red); }
-  .badge{ font-weight:600; }
-  .btn-brand{
-    background:var(--card-red);
-    color:#fff;
-  }
-  .btn-brand:hover{
-    background:#832a24;
-    color:#fff;
-  }
-  .week-nav-btn{
-    font-family:'Playfair Display', serif;
-    font-size:1.1rem;
-  }
-  .entry-row:hover{ background:#f3efe4; }
-  .form-label{ font-weight:600; font-size:.9rem; }
-  #syncStatus{ font-size:.8rem; color:#6b6459; }
-</style>
+    h1, h2, h3, h4, .brand, .stat-value {
+      font-family: "Playfair Display", Georgia, serif;
+      letter-spacing: 0;
+    }
+
+    .app-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 0 18px;
+    }
+
+    .brand {
+      font-size: clamp(1.65rem, 4vw, 2.45rem);
+      line-height: 1;
+      color: var(--leaf-dark);
+      margin: 0;
+    }
+
+    .sync-pill {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.85);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: .82rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .sync-pill.ok { color: var(--leaf-dark); border-color: #b8d5c7; }
+    .sync-pill.bad { color: #8a1f2d; border-color: #e5b7bf; background: #fff5f6; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 10px 24px rgba(33, 77, 62, .08);
+    }
+
+    .panel-body { padding: 18px; }
+
+    .section-title {
+      font-size: 1.35rem;
+      margin: 0 0 14px;
+      color: var(--leaf-dark);
+    }
+
+    .nav-tabs {
+      border-bottom: 1px solid var(--line);
+      gap: 4px;
+      padding: 0 6px;
+    }
+
+    .nav-tabs .nav-link {
+      border: 0;
+      color: var(--muted);
+      font-weight: 700;
+      padding: 13px 12px;
+      border-bottom: 3px solid transparent;
+      border-radius: 0;
+    }
+
+    .nav-tabs .nav-link.active {
+      color: var(--leaf-dark);
+      border-bottom-color: var(--leaf);
+      background: transparent;
+    }
+
+    .form-label {
+      font-size: .84rem;
+      font-weight: 700;
+      color: #43524b;
+      margin-bottom: 5px;
+    }
+
+    .form-control, .form-select {
+      border-color: #cfdad4;
+      border-radius: 6px;
+      min-height: 44px;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: var(--leaf);
+      box-shadow: 0 0 0 .2rem rgba(47,109,87,.14);
+    }
+
+    .btn {
+      border-radius: 6px;
+      min-height: 42px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--leaf);
+      border-color: var(--leaf);
+    }
+
+    .btn-primary:hover, .btn-primary:focus {
+      background: var(--leaf-dark);
+      border-color: var(--leaf-dark);
+    }
+
+    .btn-outline-secondary {
+      border-color: #c6d4cd;
+      color: #46564f;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .stat-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+      min-height: 104px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: .76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      font-size: clamp(1.6rem, 4vw, 2.35rem);
+      line-height: 1.05;
+      margin-top: 8px;
+      color: var(--leaf-dark);
+      word-break: break-word;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .metric-box {
+      background: var(--wash);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 112px;
+    }
+
+    .metric-box h3 {
+      font-size: 1rem;
+      margin: 0 0 8px;
+      color: var(--leaf-dark);
+    }
+
+    .metric-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-top: 1px solid rgba(102,115,109,.18);
+      padding-top: 7px;
+      margin-top: 7px;
+      font-size: .9rem;
+    }
+
+    .week-switch {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .week-label {
+      font-weight: 800;
+      color: var(--leaf-dark);
+      text-align: center;
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      flex: 0 0 42px;
+    }
+
+    .table {
+      --bs-table-bg: transparent;
+      margin-bottom: 0;
+    }
+
+    .table th {
+      color: #43524b;
+      font-size: .78rem;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .table td {
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .scroll-table {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .connection-output {
+      min-height: 74px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .82rem;
+      background: #f7f9f8;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+    }
+
+    .empty-state {
+      border: 1px dashed #b8c9c0;
+      border-radius: 8px;
+      padding: 18px;
+      color: var(--muted);
+      text-align: center;
+      background: #fbfcfb;
+    }
+
+    .toast-stack {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 1060;
+      width: min(420px, calc(100vw - 32px));
+    }
+
+    .alert {
+      border-radius: 8px;
+      box-shadow: 0 12px 30px rgba(23,32,27,.14);
+    }
+
+    .task-inventory { border-left: 4px solid var(--gold); }
+    .task-pull { border-left: 4px solid var(--blue); }
+    .task-pack { border-left: 4px solid var(--rose); }
+
+    @media (max-width: 980px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .mini-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 540px) {
+      .app-shell { padding: 12px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .panel-body { padding: 14px; }
+      .stat-grid { grid-template-columns: 1fr; }
+      .week-switch { align-items: stretch; }
+      .week-label { display: flex; align-items: center; justify-content: center; }
+      .nav-tabs .nav-link { font-size: .9rem; padding: 12px 8px; }
+    }
+  </style>
 </head>
 <body>
-
-<nav class="navbar navbar-expand navbar-dark mb-4">
-  <div class="container-fluid">
-    <span class="brand">Order Time Tracker</span>
-    <span id="syncStatus" class="text-white-50">loading…</span>
-  </div>
-</nav>
-
-<div class="container">
-
-  <ul class="nav nav-pills mb-4" id="mainTabs">
-    <li class="nav-item"><button class="nav-link active" data-tab="log">Log Entry</button></li>
-    <li class="nav-item"><button class="nav-link" data-tab="week">This Week</button></li>
-    <li class="nav-item"><button class="nav-link" data-tab="history">History</button></li>
-    <li class="nav-item"><button class="nav-link" data-tab="settings">Settings</button></li>
-  </ul>
-
-  <!-- LOG ENTRY TAB -->
-  <div class="tab-pane" id="tab-log">
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5 class="card-title mb-3">New entry</h5>
-        <form id="entryForm" class="row g-3">
-          <div class="col-md-3">
-            <label class="form-label">Date</label>
-            <input type="date" class="form-control" id="fDate" required>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Person</label>
-            <select class="form-select" id="fPerson" required></select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Task</label>
-            <select class="form-select" id="fTask" required>
-              <option value="inventory">Add to Inventory</option>
-              <option value="pull">Pull Orders</option>
-              <option value="pack">Pack Orders</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label" id="fCountLabel"># Orders in session</label>
-            <input type="number" min="0" class="form-control" id="fCount" value="0">
-          </div>
-          <div class="col-md-3" id="fCostPerCardWrap">
-            <label class="form-label">Cost per card ($)</label>
-            <input type="number" min="0" step="0.0001" class="form-control" id="fCostPerCard" placeholder="0.0000">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Start time</label>
-            <input type="time" class="form-control" id="fStart" required>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">End time</label>
-            <input type="time" class="form-control" id="fEnd" required>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Notes (optional)</label>
-            <input type="text" class="form-control" id="fNotes" placeholder="e.g. opened a booster box">
-          </div>
-          <div class="col-12">
-            <span id="fPreview" class="text-muted"></span>
-          </div>
-          <div class="col-12">
-            <button type="submit" class="btn btn-brand">Add entry</button>
-          </div>
-        </form>
+  <div class="app-shell">
+    <header class="topbar">
+      <h1 class="brand">TCG Tracker</h1>
+      <div id="syncStatus" class="sync-pill">
+        <i data-lucide="cloud" width="16" height="16"></i>
+        <span>Not connected</span>
       </div>
-    </div>
+    </header>
 
-    <h5 class="mb-3">Today's entries</h5>
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead>
-          <tr><th>Person</th><th>Task</th><th>Time</th><th>Hours</th><th>Count</th><th>Cost</th><th>Notes</th><th></th></tr>
-        </thead>
-        <tbody id="todayEntries"></tbody>
-      </table>
-    </div>
-  </div>
+    <main class="main-grid">
+      <section class="panel">
+        <div class="panel-body">
+          <h2 class="section-title">Log Session</h2>
+          <form id="entryForm">
+            <input type="hidden" id="editingId">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="entryDate">Date</label>
+                <input class="form-control" type="date" id="entryDate" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="person">Person</label>
+                <select class="form-select" id="person" required></select>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="taskType">Task Type</label>
+                <select class="form-select" id="taskType" required>
+                  <option>Add to Inventory</option>
+                  <option>Pull Orders</option>
+                  <option>Pack Orders</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="startTime">Start Time</label>
+                <input class="form-control" type="time" id="startTime" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="endTime">End Time</label>
+                <input class="form-control" type="time" id="endTime" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label" id="countLabel" for="count"># Cards Added</label>
+                <input class="form-control" type="number" min="0" step="1" id="count" required>
+              </div>
+              <div class="col-12" id="costWrap">
+                <label class="form-label" for="costPerCard">Cost Per Card</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input class="form-control" type="number" min="0" step="0.0001" id="costPerCard" placeholder="0.0234">
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="notes">Notes</label>
+                <textarea class="form-control" id="notes" rows="3"></textarea>
+              </div>
+              <div class="col-12 d-grid gap-2">
+                <button class="btn btn-primary" type="submit">
+                  <i data-lucide="save" width="18" height="18"></i>
+                  <span id="saveButtonText">Save Session</span>
+                </button>
+                <button class="btn btn-outline-secondary d-none" type="button" id="cancelEdit">
+                  <i data-lucide="x" width="18" height="18"></i>
+                  Cancel Edit
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
 
-  <!-- THIS WEEK TAB -->
-  <div class="tab-pane d-none" id="tab-week">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <button class="btn btn-outline-secondary week-nav-btn" id="prevWeekBtn">&larr; Prev</button>
-      <h4 class="mb-0" id="weekLabel"></h4>
-      <button class="btn btn-outline-secondary week-nav-btn" id="nextWeekBtn">Next &rarr;</button>
-    </div>
+      <section class="panel">
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="week-tab" data-bs-toggle="tab" data-bs-target="#weekPane" type="button" role="tab">This Week</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#historyPane" type="button" role="tab">History</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settingsPane" type="button" role="tab">Settings</button>
+          </li>
+        </ul>
 
-    <div class="row g-3 mb-4">
-      <div class="col-md-2">
-        <div class="card stat-card"><div class="stat-number" id="wkTotalHours">0</div><div class="stat-label">Total hours</div></div>
-      </div>
-      <div class="col-md-2">
-        <div class="card stat-card"><div class="stat-number" id="wkOrdersPulled">0</div><div class="stat-label">Orders pulled</div></div>
-      </div>
-      <div class="col-md-2">
-        <div class="card stat-card"><div class="stat-number" id="wkOrdersPacked">0</div><div class="stat-label">Orders packed</div></div>
-      </div>
-      <div class="col-md-2">
-        <div class="card stat-card"><div class="stat-number" id="wkTotalCards">0</div><div class="stat-label">Cards added</div></div>
-      </div>
-      <div class="col-md-2">
-        <div class="card stat-card"><div class="stat-number" id="wkInvCost">$0</div><div class="stat-label">Spent on inventory</div></div>
-      </div>
-      <div class="col-md-2">
-        <div class="card stat-card"><div class="stat-number" id="wkPerHour">–</div><div class="stat-label">$ / hour</div></div>
-      </div>
-      <div class="col-md-2">
-        <div class="card stat-card"><div class="stat-number" id="wkPerOrder">–</div><div class="stat-label">$ / order (packed)</div></div>
-      </div>
-    </div>
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="weekPane" role="tabpanel" tabindex="0">
+            <div class="panel-body">
+              <div class="week-switch">
+                <button class="btn btn-outline-secondary icon-btn" type="button" id="prevWeek" title="Previous week" aria-label="Previous week">
+                  <i data-lucide="chevron-left" width="20" height="20"></i>
+                </button>
+                <div class="week-label" id="weekLabel"></div>
+                <button class="btn btn-outline-secondary icon-btn" type="button" id="nextWeek" title="Next week" aria-label="Next week">
+                  <i data-lucide="chevron-right" width="20" height="20"></i>
+                </button>
+              </div>
 
-    <p class="text-muted small">"$ / order" is based on orders <em>packed</em> (the point an order is actually shipped), not pulled — pulling and packing are two stages of the same orders, so they're tracked separately here rather than added together.</p>
+              <div class="stat-grid mb-3">
+                <div class="stat-card">
+                  <div class="stat-label">Total Hours</div>
+                  <div class="stat-value" id="statHours">0.0</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Orders Pulled</div>
+                  <div class="stat-value" id="statPulled">0</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Orders Packed</div>
+                  <div class="stat-value" id="statPacked">0</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Cards Added</div>
+                  <div class="stat-value" id="statCards">0</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Inventory Cost</div>
+                  <div class="stat-value" id="statCost">$0</div>
+                </div>
+              </div>
 
-    <div class="row g-3 mb-4">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-body">
-            <h6 class="card-title">Hours by task</h6>
-            <table class="table table-sm mb-0"><tbody id="wkByTask"></tbody></table>
+              <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-5">
+                  <label class="form-label" for="weeklySales">Weekly Sales</label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input class="form-control" id="weeklySales" type="number" min="0" step="0.01">
+                  </div>
+                </div>
+                <div class="col-md-7">
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <div class="metric-box">
+                        <h3>$/Hour</h3>
+                        <div class="stat-value fs-3" id="salesPerHour">$0</div>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="metric-box">
+                        <h3>$/Order</h3>
+                        <div class="stat-value fs-3" id="salesPerOrder">$0</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mini-grid mb-3">
+                <div class="metric-box">
+                  <h3>Hours by Task</h3>
+                  <div id="hoursByTask"></div>
+                </div>
+                <div class="metric-box">
+                  <h3>Hours by Person</h3>
+                  <div id="hoursByPerson"></div>
+                </div>
+                <div class="metric-box">
+                  <h3>Throughput</h3>
+                  <div id="throughput"></div>
+                </div>
+              </div>
+
+              <h2 class="section-title">Sessions</h2>
+              <div id="weekEntries"></div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="historyPane" role="tabpanel" tabindex="0">
+            <div class="panel-body">
+              <h2 class="section-title">Weekly History</h2>
+              <div class="scroll-table">
+                <table class="table table-sm table-hover">
+                  <thead>
+                    <tr>
+                      <th>Week</th>
+                      <th>Hours</th>
+                      <th>Pulled</th>
+                      <th>Packed</th>
+                      <th>Cards</th>
+                      <th>Cost</th>
+                      <th>Sales</th>
+                      <th>$/Hr</th>
+                      <th>$/Order</th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyRows"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="settingsPane" role="tabpanel" tabindex="0">
+            <div class="panel-body">
+              <div class="row g-4">
+                <div class="col-lg-6">
+                  <h2 class="section-title">People</h2>
+                  <div class="input-group mb-2">
+                    <input class="form-control" id="newPerson" type="text" placeholder="Name">
+                    <button class="btn btn-primary" type="button" id="addPerson">
+                      <i data-lucide="plus" width="18" height="18"></i>
+                      Add
+                    </button>
+                  </div>
+                  <div id="peopleList"></div>
+                </div>
+
+                <div class="col-lg-6">
+                  <h2 class="section-title">Starting Inventory Baseline</h2>
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label" for="baselineCost">Baseline Cost</label>
+                      <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input class="form-control" type="number" min="0" step="0.01" id="baselineCost">
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="baselineCards">Baseline Card Count</label>
+                      <input class="form-control" type="number" min="0" step="1" id="baselineCards">
+                    </div>
+                    <div class="col-12">
+                      <div class="metric-box">
+                        <h3>Total Cost Basis to Date</h3>
+                        <div class="stat-value fs-3" id="totalCostBasis">$0</div>
+                      </div>
+                    </div>
+                    <div class="col-12 d-grid">
+                      <button class="btn btn-primary" type="button" id="saveSettings">
+                        <i data-lucide="save" width="18" height="18"></i>
+                        Save Settings
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <h2 class="section-title">Connection</h2>
+                  <label class="form-label" for="backendUrl">Apps Script Web App URL</label>
+                  <input class="form-control mb-2" id="backendUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+                  <div class="d-flex flex-wrap gap-2 mb-2">
+                    <button class="btn btn-primary" type="button" id="saveBackend">
+                      <i data-lucide="link" width="18" height="18"></i>
+                      Save URL
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" id="testConnection">
+                      <i data-lucide="activity" width="18" height="18"></i>
+                      Test Connection
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" id="loadRemote">
+                      <i data-lucide="download-cloud" width="18" height="18"></i>
+                      Load Sheet Data
+                    </button>
+                  </div>
+                  <div class="connection-output" id="connectionOutput">No connection test yet.</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-body">
-            <h6 class="card-title">Hours by person</h6>
-            <table class="table table-sm mb-0"><tbody id="wkByPerson"></tbody></table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card mb-4">
-      <div class="card-body">
-        <h6 class="card-title">Cards / orders per hour, by task</h6>
-        <table class="table table-sm mb-0"><tbody id="wkOrdersPerHour"></tbody></table>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-body">
-        <h6 class="card-title">Sales for this week (optional)</h6>
-        <p class="text-muted small">Enter this once you've pulled your weekly sales total, to see rough $/hour and $/order for the week.</p>
-        <div class="row g-2 align-items-end">
-          <div class="col-auto">
-            <label class="form-label">Weekly sales $</label>
-            <input type="number" step="0.01" class="form-control" id="wkSalesInput">
-          </div>
-          <div class="col-auto">
-            <button class="btn btn-brand" id="saveSalesBtn">Save</button>
-          </div>
-        </div>
-      </div>
-    </div>
+      </section>
+    </main>
   </div>
 
-  <!-- HISTORY TAB -->
-  <div class="tab-pane d-none" id="tab-history">
-    <h5 class="mb-3">All weeks</h5>
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead>
-          <tr><th>Week</th><th>Hours</th><th>Pulled</th><th>Packed</th><th>Cards added</th><th>Inventory cost</th><th>Sales</th><th>$/hr</th><th>$/order</th></tr>
-        </thead>
-        <tbody id="historyTable"></tbody>
-      </table>
-    </div>
-  </div>
+  <div class="toast-stack" id="toastStack"></div>
 
-  <!-- SETTINGS TAB -->
-  <div class="tab-pane d-none" id="tab-settings">
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5 class="card-title mb-3">People</h5>
-        <ul class="list-group mb-3" id="peopleList"></ul>
-        <div class="row g-2 align-items-end">
-          <div class="col-auto">
-            <label class="form-label">Add a person</label>
-            <input type="text" class="form-control" id="newPersonInput" placeholder="Name">
-          </div>
-          <div class="col-auto">
-            <button class="btn btn-brand" id="addPersonBtn">Add</button>
-          </div>
-        </div>
-      </div>
-    </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const STORAGE_KEY = "tcgTrackerStateV1";
+    const TASKS = ["Add to Inventory", "Pull Orders", "Pack Orders"];
 
-    <div class="card">
-      <div class="card-body">
-        <h5 class="card-title mb-3">Starting inventory baseline</h5>
-        <p class="text-muted small">A one-time lump-sum cost basis for stock you already owned before tracking cost-per-card going forward (e.g. your existing collection). This is separate from the per-card cost you log on new "Add to Inventory" entries.</p>
-        <div class="row g-2 align-items-end mb-3">
-          <div class="col-auto">
-            <label class="form-label">Baseline total cost ($)</label>
-            <input type="number" min="0" step="0.01" class="form-control" id="baselineCostInput">
-          </div>
-          <div class="col-auto">
-            <label class="form-label">Baseline card count</label>
-            <input type="number" min="0" class="form-control" id="baselineCardsInput">
-          </div>
-          <div class="col-auto">
-            <button class="btn btn-brand" id="saveBaselineBtn">Save</button>
-          </div>
-        </div>
-        <p class="mb-0"><strong>Total cost basis to date:</strong> <span id="totalCostBasis">$0.00</span>
-          <span class="text-muted small">(baseline + all logged inventory-add costs)</span></p>
-      </div>
-    </div>
-  </div>
+    const defaultState = {
+      version: 1,
+      people: ["Becca", "Daughter"],
+      baseline: { cost: 0, cards: 0 },
+      entries: [],
+      weeklySales: {},
+      updatedAt: null
+    };
 
-</div>
+    let state = loadLocalState();
+    let currentWeekStart = startOfWeek(new Date());
+    let salesSaveTimer = null;
 
-<script>
-/* ---------- Config ---------- */
-const APPS_SCRIPT_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
+    const el = {
+      syncStatus: document.getElementById("syncStatus"),
+      entryForm: document.getElementById("entryForm"),
+      editingId: document.getElementById("editingId"),
+      entryDate: document.getElementById("entryDate"),
+      person: document.getElementById("person"),
+      taskType: document.getElementById("taskType"),
+      startTime: document.getElementById("startTime"),
+      endTime: document.getElementById("endTime"),
+      count: document.getElementById("count"),
+      countLabel: document.getElementById("countLabel"),
+      costWrap: document.getElementById("costWrap"),
+      costPerCard: document.getElementById("costPerCard"),
+      notes: document.getElementById("notes"),
+      saveButtonText: document.getElementById("saveButtonText"),
+      cancelEdit: document.getElementById("cancelEdit"),
+      prevWeek: document.getElementById("prevWeek"),
+      nextWeek: document.getElementById("nextWeek"),
+      weekLabel: document.getElementById("weekLabel"),
+      weeklySales: document.getElementById("weeklySales"),
+      statHours: document.getElementById("statHours"),
+      statPulled: document.getElementById("statPulled"),
+      statPacked: document.getElementById("statPacked"),
+      statCards: document.getElementById("statCards"),
+      statCost: document.getElementById("statCost"),
+      salesPerHour: document.getElementById("salesPerHour"),
+      salesPerOrder: document.getElementById("salesPerOrder"),
+      hoursByTask: document.getElementById("hoursByTask"),
+      hoursByPerson: document.getElementById("hoursByPerson"),
+      throughput: document.getElementById("throughput"),
+      weekEntries: document.getElementById("weekEntries"),
+      historyRows: document.getElementById("historyRows"),
+      peopleList: document.getElementById("peopleList"),
+      newPerson: document.getElementById("newPerson"),
+      addPerson: document.getElementById("addPerson"),
+      baselineCost: document.getElementById("baselineCost"),
+      baselineCards: document.getElementById("baselineCards"),
+      totalCostBasis: document.getElementById("totalCostBasis"),
+      saveSettings: document.getElementById("saveSettings"),
+      backendUrl: document.getElementById("backendUrl"),
+      saveBackend: document.getElementById("saveBackend"),
+      testConnection: document.getElementById("testConnection"),
+      loadRemote: document.getElementById("loadRemote"),
+      connectionOutput: document.getElementById("connectionOutput"),
+      toastStack: document.getElementById("toastStack")
+    };
 
-/* ---------- State ---------- */
-let state = { people: ["Becca", "Daughter"], entries: [], weeklySales: {}, baseline: { cost: 0, cards: 0 } };
-let currentWeekStart = getWeekStart(todayStr());
+    document.addEventListener("DOMContentLoaded", init);
 
-/* ---------- Helpers ---------- */
-function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
-function $(id){ return document.getElementById(id); }
+    function init() {
+      el.entryDate.value = formatDate(new Date());
+      const now = new Date();
+      el.startTime.value = `${String(now.getHours()).padStart(2, "0")}:00`;
+      el.endTime.value = `${String(now.getHours() + 1).padStart(2, "0")}:00`;
+      el.backendUrl.value = localStorage.getItem("tcgTrackerBackendUrl") || "";
 
-function getWeekStart(dateStr){
-  const d = new Date(dateStr + "T00:00:00");
-  const day = d.getDay(); // 0 = Sunday
-  d.setDate(d.getDate() - day);
-  return d.toISOString().slice(0,10);
-}
-function addDays(dateStr, n){
-  const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0,10);
-}
-function formatWeekLabel(weekStart){
-  const start = new Date(weekStart + "T00:00:00");
-  const end = new Date(addDays(weekStart,6) + "T00:00:00");
-  const opts = { month:'short', day:'numeric' };
-  const startStr = start.toLocaleDateString('en-US', opts);
-  const endStr = end.toLocaleDateString('en-US', {...opts, year:'numeric'});
-  return `${startStr} – ${endStr}`;
-}
-function hoursBetween(start, end){
-  const [sh, sm] = start.split(':').map(Number);
-  const [eh, em] = end.split(':').map(Number);
-  let mins = (eh*60+em) - (sh*60+sm);
-  if (mins < 0) mins += 24*60; // safety, shouldn't happen for same-day sessions
-  return mins/60;
-}
-const TASK_LABELS = { inventory:"Add to Inventory", pull:"Pull Orders", pack:"Pack Orders" };
-const TASK_BADGE = { inventory:"task-badge-inventory", pull:"task-badge-pull", pack:"task-badge-pack" };
-// "inventory" sessions count cards added; "pull"/"pack" sessions count orders processed.
-const TASK_UNIT = { inventory:"cards", pull:"orders", pack:"orders" };
-const TASK_COUNT_LABEL = { inventory:"# Cards added", pull:"# Orders in session", pack:"# Orders in session" };
-function isCardTask(task){ return task === 'inventory'; }
-
-/* ---------- Backend sync ---------- */
-async function loadAll(){
-  $('syncStatus').textContent = 'syncing…';
-  try{
-    const res = await fetch(APPS_SCRIPT_URL);
-    const data = await res.json();
-    state = Object.assign({ people:["Becca","Daughter"], entries:[], weeklySales:{}, baseline:{cost:0,cards:0} }, data);
-    $('syncStatus').textContent = 'synced';
-  }catch(err){
-    $('syncStatus').textContent = 'offline (using local data)';
-  }
-  renderAll();
-}
-async function saveAll(){
-  $('syncStatus').textContent = 'saving…';
-  try{
-    await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify(state) });
-    $('syncStatus').textContent = 'synced';
-  }catch(err){
-    $('syncStatus').textContent = 'save failed — check connection';
-  }
-}
-
-/* ---------- Tabs ---------- */
-document.querySelectorAll('#mainTabs button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('#mainTabs button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.add('d-none'));
-    $('tab-'+btn.dataset.tab).classList.remove('d-none');
-    renderAll();
-  });
-});
-
-/* ---------- Render ---------- */
-function renderAll(){
-  renderPeopleDropdown();
-  renderTodayEntries();
-  renderWeek();
-  renderHistory();
-  renderSettings();
-}
-
-function renderPeopleDropdown(){
-  const sel = $('fPerson');
-  const current = sel.value;
-  sel.innerHTML = state.people.map(p=>`<option value="${p}">${p}</option>`).join('');
-  if (state.people.includes(current)) sel.value = current;
-}
-
-function renderTodayEntries(){
-  const today = $('fDate').value || todayStr();
-  const rows = state.entries.filter(e=>e.date===today).sort((a,b)=>a.start.localeCompare(b.start));
-  $('todayEntries').innerHTML = rows.map(e=>`
-    <tr class="entry-row">
-      <td>${e.person}</td>
-      <td><span class="badge ${TASK_BADGE[e.task]}">${TASK_LABELS[e.task]}</span></td>
-      <td>${e.start}–${e.end}</td>
-      <td>${hoursBetween(e.start,e.end).toFixed(2)}</td>
-      <td>${e.count} ${TASK_UNIT[e.task]}</td>
-      <td>${isCardTask(e.task) && e.costPerCard ? '$'+(e.count*e.costPerCard).toFixed(2)+' ('+e.costPerCard.toFixed(4)+'/card)' : '–'}</td>
-      <td class="text-muted small">${e.notes||''}</td>
-      <td><button class="btn btn-sm btn-outline-danger" data-del="${e.id}">&times;</button></td>
-    </tr>
-  `).join('') || `<tr><td colspan="8" class="text-muted">No entries yet for this date.</td></tr>`;
-}
-
-function weekEntries(weekStart){
-  const weekEnd = addDays(weekStart, 6);
-  return state.entries.filter(e=> e.date >= weekStart && e.date <= weekEnd);
-}
-
-function renderWeek(){
-  $('weekLabel').textContent = formatWeekLabel(currentWeekStart);
-  const entries = weekEntries(currentWeekStart);
-
-  const totalHours = entries.reduce((s,e)=>s+hoursBetween(e.start,e.end),0);
-  const ordersPulled = entries.filter(e=>e.task==='pull').reduce((s,e)=>s+Number(e.count||0),0);
-  const ordersPacked = entries.filter(e=>e.task==='pack').reduce((s,e)=>s+Number(e.count||0),0);
-  const totalCards = entries.filter(e=>isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0),0);
-  const invCost = entries.filter(e=>isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0)*Number(e.costPerCard||0),0);
-  $('wkTotalHours').textContent = totalHours.toFixed(1);
-  $('wkOrdersPulled').textContent = ordersPulled;
-  $('wkOrdersPacked').textContent = ordersPacked;
-  $('wkTotalCards').textContent = totalCards;
-  $('wkInvCost').textContent = '$'+invCost.toFixed(2);
-
-  // by task
-  const byTask = {};
-  ['inventory','pull','pack'].forEach(t=>byTask[t]={hours:0, count:0});
-  entries.forEach(e=>{
-    byTask[e.task].hours += hoursBetween(e.start,e.end);
-    byTask[e.task].count += Number(e.count||0);
-  });
-  $('wkByTask').innerHTML = Object.entries(byTask).map(([t,v])=>`
-    <tr><td><span class="badge ${TASK_BADGE[t]}">${TASK_LABELS[t]}</span></td><td class="text-end">${v.hours.toFixed(2)} hrs</td></tr>
-  `).join('');
-  $('wkOrdersPerHour').innerHTML = Object.entries(byTask).map(([t,v])=>`
-    <tr><td><span class="badge ${TASK_BADGE[t]}">${TASK_LABELS[t]}</span></td><td class="text-end">${v.hours>0 ? (v.count/v.hours).toFixed(2) : '–'} ${TASK_UNIT[t]}/hr</td></tr>
-  `).join('');
-
-  // by person
-  const byPerson = {};
-  state.people.forEach(p=>byPerson[p]=0);
-  entries.forEach(e=>{ byPerson[e.person] = (byPerson[e.person]||0) + hoursBetween(e.start,e.end); });
-  $('wkByPerson').innerHTML = Object.entries(byPerson).map(([p,h])=>`
-    <tr><td>${p}</td><td class="text-end">${h.toFixed(2)} hrs</td></tr>
-  `).join('');
-
-  // sales correlation
-  const sales = state.weeklySales[currentWeekStart];
-  $('wkSalesInput').value = sales!=null ? sales : '';
-  $('wkPerHour').textContent = (sales!=null && totalHours>0) ? '$'+(sales/totalHours).toFixed(2) : '–';
-  $('wkPerOrder').textContent = (sales!=null && ordersPacked>0) ? '$'+(sales/ordersPacked).toFixed(2) : '–';
-}
-
-function allWeekKeys(){
-  const keys = new Set(Object.keys(state.weeklySales));
-  state.entries.forEach(e=> keys.add(getWeekStart(e.date)));
-  return Array.from(keys).sort().reverse();
-}
-
-function renderHistory(){
-  const keys = allWeekKeys();
-  $('historyTable').innerHTML = keys.map(wk=>{
-    const entries = weekEntries(wk);
-    const hours = entries.reduce((s,e)=>s+hoursBetween(e.start,e.end),0);
-    const ordersPulled = entries.filter(e=>e.task==='pull').reduce((s,e)=>s+Number(e.count||0),0);
-    const ordersPacked = entries.filter(e=>e.task==='pack').reduce((s,e)=>s+Number(e.count||0),0);
-    const cards = entries.filter(e=>isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0),0);
-    const invCost = entries.filter(e=>isCardTask(e.task)).reduce((s,e)=>s+Number(e.count||0)*Number(e.costPerCard||0),0);
-    const sales = state.weeklySales[wk];
-    return `<tr>
-      <td>${formatWeekLabel(wk)}</td>
-      <td>${hours.toFixed(1)}</td>
-      <td>${ordersPulled}</td>
-      <td>${ordersPacked}</td>
-      <td>${cards}</td>
-      <td>$${invCost.toFixed(2)}</td>
-      <td>${sales!=null ? '$'+Number(sales).toFixed(2) : '–'}</td>
-      <td>${(sales!=null && hours>0) ? '$'+(sales/hours).toFixed(2) : '–'}</td>
-      <td>${(sales!=null && ordersPacked>0) ? '$'+(sales/ordersPacked).toFixed(2) : '–'}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="9" class="text-muted">No entries logged yet.</td></tr>`;
-}
-
-function renderSettings(){
-  $('peopleList').innerHTML = state.people.map(p=>`
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      ${p}
-      <button class="btn btn-sm btn-outline-danger" data-del-person="${p}">Remove</button>
-    </li>
-  `).join('');
-
-  $('baselineCostInput').value = state.baseline.cost || '';
-  $('baselineCardsInput').value = state.baseline.cards || '';
-  const loggedCost = state.entries.filter(e=>isCardTask(e.task))
-    .reduce((s,e)=>s+Number(e.count||0)*Number(e.costPerCard||0),0);
-  const totalBasis = Number(state.baseline.cost||0) + loggedCost;
-  $('totalCostBasis').textContent = '$'+totalBasis.toFixed(2);
-}
-
-/* ---------- Events ---------- */
-$('fDate').value = todayStr();
-$('fDate').addEventListener('change', renderTodayEntries);
-
-function updateCountLabel(){
-  $('fCountLabel').textContent = TASK_COUNT_LABEL[$('fTask').value];
-  $('fCostPerCardWrap').classList.toggle('d-none', !isCardTask($('fTask').value));
-}
-$('fTask').addEventListener('change', updateCountLabel);
-updateCountLabel();
-
-function updatePreview(){
-  const s = $('fStart').value, e = $('fEnd').value;
-  $('fPreview').textContent = (s && e) ? `Duration: ${hoursBetween(s,e).toFixed(2)} hours` : '';
-}
-$('fStart').addEventListener('change', updatePreview);
-$('fEnd').addEventListener('change', updatePreview);
-
-$('entryForm').addEventListener('submit', async (ev)=>{
-  ev.preventDefault();
-  const entry = {
-    id: uid(),
-    date: $('fDate').value,
-    person: $('fPerson').value,
-    task: $('fTask').value,
-    start: $('fStart').value,
-    end: $('fEnd').value,
-    count: Number($('fCount').value||0),
-    costPerCard: isCardTask($('fTask').value) ? Number($('fCostPerCard').value||0) : null,
-    notes: $('fNotes').value.trim()
-  };
-  if (hoursBetween(entry.start, entry.end) <= 0){
-    alert('End time must be after start time.');
-    return;
-  }
-  state.entries.push(entry);
-  $('fCount').value = 0; $('fCostPerCard').value=''; $('fNotes').value=''; $('fStart').value=''; $('fEnd').value='';
-  $('fPreview').textContent='';
-  renderAll();
-  await saveAll();
-});
-
-document.addEventListener('click', async (ev)=>{
-  if (ev.target.matches('[data-del]')){
-    state.entries = state.entries.filter(e=>e.id!==ev.target.getAttribute('data-del'));
-    renderAll(); await saveAll();
-  }
-  if (ev.target.matches('[data-del-person]')){
-    const name = ev.target.getAttribute('data-del-person');
-    if (confirm(`Remove ${name} from the people list? (Past entries stay as-is.)`)){
-      state.people = state.people.filter(p=>p!==name);
-      renderAll(); await saveAll();
+      wireEvents();
+      render();
+      updateCountLabel();
+      setSyncStatus(el.backendUrl.value ? "Ready" : "Not connected", el.backendUrl.value ? "ok" : "");
+      loadFromBackend({ silent: true });
+      lucide.createIcons();
     }
-  }
-});
 
-$('addPersonBtn').addEventListener('click', async ()=>{
-  const name = $('newPersonInput').value.trim();
-  if (!name) return;
-  if (!state.people.includes(name)) state.people.push(name);
-  $('newPersonInput').value='';
-  renderAll(); await saveAll();
-});
+    function wireEvents() {
+      el.taskType.addEventListener("change", updateCountLabel);
+      el.entryForm.addEventListener("submit", saveEntry);
+      el.cancelEdit.addEventListener("click", clearEntryForm);
+      el.prevWeek.addEventListener("click", () => changeWeek(-7));
+      el.nextWeek.addEventListener("click", () => changeWeek(7));
+      el.weeklySales.addEventListener("input", saveWeeklySalesDebounced);
+      el.addPerson.addEventListener("click", addPerson);
+      el.newPerson.addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          addPerson();
+        }
+      });
+      el.saveSettings.addEventListener("click", saveSettings);
+      el.saveBackend.addEventListener("click", saveBackendUrl);
+      el.testConnection.addEventListener("click", testConnection);
+      el.loadRemote.addEventListener("click", () => loadFromBackend({ silent: false }));
+    }
 
-$('prevWeekBtn').addEventListener('click', ()=>{ currentWeekStart = addDays(currentWeekStart,-7); renderWeek(); });
-$('nextWeekBtn').addEventListener('click', ()=>{ currentWeekStart = addDays(currentWeekStart,7); renderWeek(); });
+    function loadLocalState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(defaultState);
+        const parsed = JSON.parse(raw);
+        return normalizeState(parsed);
+      } catch {
+        return structuredClone(defaultState);
+      }
+    }
 
-$('saveSalesBtn').addEventListener('click', async ()=>{
-  const val = $('wkSalesInput').value;
-  if (val === ''){ delete state.weeklySales[currentWeekStart]; }
-  else { state.weeklySales[currentWeekStart] = Number(val); }
-  renderWeek(); renderHistory();
-  await saveAll();
-});
+    function normalizeState(input) {
+      const merged = {
+        ...structuredClone(defaultState),
+        ...input,
+        baseline: { ...defaultState.baseline, ...(input?.baseline || {}) }
+      };
+      merged.people = Array.isArray(merged.people) && merged.people.length ? merged.people : ["Becca", "Daughter"];
+      merged.entries = Array.isArray(merged.entries) ? merged.entries.filter(entry => entry && TASKS.includes(entry.taskType)) : [];
+      merged.weeklySales = merged.weeklySales && typeof merged.weeklySales === "object" ? merged.weeklySales : {};
+      merged.baseline.cost = numberOrZero(merged.baseline.cost);
+      merged.baseline.cards = Math.max(0, Math.floor(numberOrZero(merged.baseline.cards)));
+      return merged;
+    }
 
-$('saveBaselineBtn').addEventListener('click', async ()=>{
-  state.baseline = {
-    cost: Number($('baselineCostInput').value||0),
-    cards: Number($('baselineCardsInput').value||0)
-  };
-  renderSettings();
-  await saveAll();
-});
+    function persistLocal() {
+      state.updatedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
 
-document.addEventListener('visibilitychange', ()=>{
-  if (document.visibilityState === 'visible') loadAll();
-});
+    async function syncToBackend() {
+      persistLocal();
+      const url = getBackendUrl();
+      if (!url) {
+        setSyncStatus("Saved locally", "");
+        return { ok: true, localOnly: true };
+      }
 
-loadAll();
-</script>
+      setSyncStatus("Syncing...", "");
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "save", data: state })
+        });
+        const text = await response.text();
+        let parsed = null;
+        try { parsed = text ? JSON.parse(text) : null; } catch {}
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${text.slice(0, 300) || response.statusText}`);
+        }
+        if (parsed && parsed.success !== true) {
+          throw new Error(parsed.error || `Backend returned: ${text.slice(0, 300)}`);
+        }
+
+        setSyncStatus("Synced", "ok");
+        return { ok: true, body: parsed || text };
+      } catch (error) {
+        setSyncStatus("Sync failed", "bad");
+        showMessage(`Sync failed: ${error.message}`, "danger");
+        return { ok: false, error };
+      }
+    }
+
+    async function loadFromBackend({ silent }) {
+      const url = getBackendUrl();
+      if (!url) return;
+
+      try {
+        const response = await fetch(`${url}?action=load&ts=${Date.now()}`);
+        const text = await response.text();
+        let parsed;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          throw new Error(`Non-JSON response: ${text.slice(0, 300)}`);
+        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${text.slice(0, 300)}`);
+        if (parsed.success !== true) throw new Error(parsed.error || "Load failed.");
+
+        if (parsed.data) {
+          const remoteState = normalizeState(parsed.data);
+          const localTime = Date.parse(state.updatedAt || "") || 0;
+          const remoteTime = Date.parse(remoteState.updatedAt || "") || 0;
+
+          if (silent && localTime > remoteTime) {
+            setSyncStatus("Local copy newer", "ok");
+            return;
+          }
+
+          state = remoteState;
+          persistLocal();
+          render();
+          setSyncStatus("Synced", "ok");
+          if (!silent) showMessage("Loaded data from the Google Sheet.", "success");
+        }
+      } catch (error) {
+        setSyncStatus("Load failed", "bad");
+        if (!silent) showMessage(`Load failed: ${error.message}`, "danger");
+      }
+    }
+
+    function getBackendUrl() {
+      return (localStorage.getItem("tcgTrackerBackendUrl") || "").trim();
+    }
+
+    function saveBackendUrl() {
+      const url = el.backendUrl.value.trim();
+      if (url && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)) {
+        showMessage("That does not look like an Apps Script web app URL ending in /exec.", "warning");
+        return;
+      }
+      localStorage.setItem("tcgTrackerBackendUrl", url);
+      setSyncStatus(url ? "Ready" : "Not connected", url ? "ok" : "");
+      showMessage(url ? "Connection URL saved." : "Connection URL cleared.", "success");
+    }
+
+    async function testConnection() {
+      const url = getBackendUrl();
+      if (!url) {
+        el.connectionOutput.textContent = "No Apps Script URL saved.";
+        return;
+      }
+      el.connectionOutput.textContent = "Testing...";
+      try {
+        const response = await fetch(`${url}?action=test&ts=${Date.now()}`);
+        const text = await response.text();
+        let parsed = null;
+        try { parsed = JSON.parse(text); } catch {}
+        if (!response.ok) {
+          el.connectionOutput.textContent = `HTTP ${response.status}\n${text.slice(0, 700)}`;
+          setSyncStatus("Test failed", "bad");
+          return;
+        }
+        if (parsed?.success === true) {
+          el.connectionOutput.textContent = JSON.stringify(parsed, null, 2);
+          setSyncStatus("Connection ok", "ok");
+          return;
+        }
+        el.connectionOutput.textContent = parsed ? JSON.stringify(parsed, null, 2) : text.slice(0, 700);
+        setSyncStatus("Check response", "bad");
+      } catch (error) {
+        el.connectionOutput.textContent = `Fetch failed: ${error.message}`;
+        setSyncStatus("Test failed", "bad");
+      }
+    }
+
+    function saveEntry(event) {
+      event.preventDefault();
+      const taskType = el.taskType.value;
+      const entry = {
+        id: el.editingId.value || crypto.randomUUID(),
+        date: el.entryDate.value,
+        person: el.person.value,
+        taskType,
+        startTime: el.startTime.value,
+        endTime: el.endTime.value,
+        count: Math.max(0, Math.floor(numberOrZero(el.count.value))),
+        costPerCard: taskType === "Add to Inventory" ? roundTo(numberOrZero(el.costPerCard.value), 4) : 0,
+        notes: el.notes.value.trim(),
+        createdAt: el.editingId.value ? undefined : new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      if (!entry.date || !entry.person || !entry.startTime || !entry.endTime) {
+        showMessage("Date, person, start time, and end time are required.", "warning");
+        return;
+      }
+
+      const existingIndex = state.entries.findIndex(item => item.id === entry.id);
+      if (existingIndex >= 0) {
+        entry.createdAt = state.entries[existingIndex].createdAt || entry.updatedAt;
+        state.entries.splice(existingIndex, 1, entry);
+      } else {
+        state.entries.push(entry);
+      }
+
+      clearEntryForm();
+      render();
+      syncToBackend();
+    }
+
+    function editEntry(id) {
+      const entry = state.entries.find(item => item.id === id);
+      if (!entry) return;
+      el.editingId.value = entry.id;
+      el.entryDate.value = entry.date;
+      el.person.value = entry.person;
+      el.taskType.value = entry.taskType;
+      el.startTime.value = entry.startTime;
+      el.endTime.value = entry.endTime;
+      el.count.value = entry.count;
+      el.costPerCard.value = entry.costPerCard ? Number(entry.costPerCard).toFixed(4) : "";
+      el.notes.value = entry.notes || "";
+      el.saveButtonText.textContent = "Update Session";
+      el.cancelEdit.classList.remove("d-none");
+      updateCountLabel();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteEntry(id) {
+      if (!confirm("Delete this session?")) return;
+      state.entries = state.entries.filter(item => item.id !== id);
+      render();
+      syncToBackend();
+    }
+
+    function clearEntryForm() {
+      el.editingId.value = "";
+      el.entryForm.reset();
+      el.entryDate.value = formatDate(new Date());
+      el.person.value = state.people[0] || "";
+      const now = new Date();
+      el.startTime.value = `${String(now.getHours()).padStart(2, "0")}:00`;
+      el.endTime.value = `${String(now.getHours() + 1).padStart(2, "0")}:00`;
+      el.saveButtonText.textContent = "Save Session";
+      el.cancelEdit.classList.add("d-none");
+      updateCountLabel();
+      lucide.createIcons();
+    }
+
+    function updateCountLabel() {
+      const taskType = el.taskType.value;
+      el.countLabel.textContent = taskType === "Add to Inventory" ? "# Cards Added" : "# Orders";
+      el.costWrap.classList.toggle("d-none", taskType !== "Add to Inventory");
+      if (taskType !== "Add to Inventory") el.costPerCard.value = "";
+    }
+
+    function addPerson() {
+      const name = el.newPerson.value.trim();
+      if (!name) return;
+      if (state.people.some(person => person.toLowerCase() === name.toLowerCase())) {
+        showMessage("That person is already in the list.", "warning");
+        return;
+      }
+      state.people.push(name);
+      el.newPerson.value = "";
+      render();
+      syncToBackend();
+    }
+
+    function removePerson(name) {
+      const used = state.entries.some(entry => entry.person === name);
+      if (used) {
+        showMessage(`${name} is used in existing sessions and cannot be removed.`, "warning");
+        return;
+      }
+      if (state.people.length <= 1) {
+        showMessage("Keep at least one person in the list.", "warning");
+        return;
+      }
+      state.people = state.people.filter(person => person !== name);
+      render();
+      syncToBackend();
+    }
+
+    function saveSettings() {
+      state.baseline.cost = roundTo(numberOrZero(el.baselineCost.value), 2);
+      state.baseline.cards = Math.max(0, Math.floor(numberOrZero(el.baselineCards.value)));
+      render();
+      syncToBackend();
+    }
+
+    function saveWeeklySalesDebounced() {
+      clearTimeout(salesSaveTimer);
+      salesSaveTimer = setTimeout(() => {
+        const key = weekKey(currentWeekStart);
+        const sales = numberOrZero(el.weeklySales.value);
+        if (sales > 0) {
+          state.weeklySales[key] = roundTo(sales, 2);
+        } else {
+          delete state.weeklySales[key];
+        }
+        render();
+        syncToBackend();
+      }, 500);
+    }
+
+    function changeWeek(days) {
+      currentWeekStart.setDate(currentWeekStart.getDate() + days);
+      currentWeekStart = startOfWeek(currentWeekStart);
+      render();
+    }
+
+    function render() {
+      renderPeople();
+      renderSettings();
+      renderWeek();
+      renderHistory();
+      lucide.createIcons();
+    }
+
+    function renderPeople() {
+      const currentPerson = el.person.value;
+      el.person.innerHTML = state.people.map(person => `<option>${escapeHtml(person)}</option>`).join("");
+      el.person.value = state.people.includes(currentPerson) ? currentPerson : state.people[0];
+      el.peopleList.innerHTML = state.people.map(person => `
+        <div class="d-flex align-items-center justify-content-between gap-2 border rounded-2 p-2 mb-2">
+          <span class="fw-bold">${escapeHtml(person)}</span>
+          <button class="btn btn-sm btn-outline-secondary icon-btn" type="button" title="Remove ${escapeHtml(person)}" aria-label="Remove ${escapeHtml(person)}" onclick="removePerson('${escapeAttr(person)}')">
+            <i data-lucide="trash-2" width="17" height="17"></i>
+          </button>
+        </div>
+      `).join("");
+    }
+
+    function renderSettings() {
+      el.baselineCost.value = state.baseline.cost || "";
+      el.baselineCards.value = state.baseline.cards || "";
+      const loggedCost = state.entries.reduce((sum, entry) => sum + entryCost(entry), 0);
+      el.totalCostBasis.textContent = money(state.baseline.cost + loggedCost);
+    }
+
+    function renderWeek() {
+      const summary = summarizeWeek(currentWeekStart);
+      el.weekLabel.textContent = `${friendlyDate(currentWeekStart)} - ${friendlyDate(endOfWeek(currentWeekStart))}`;
+      el.statHours.textContent = formatHours(summary.hours);
+      el.statPulled.textContent = integer(summary.ordersPulled);
+      el.statPacked.textContent = integer(summary.ordersPacked);
+      el.statCards.textContent = integer(summary.cardsAdded);
+      el.statCost.textContent = money(summary.inventoryCost);
+      el.weeklySales.value = summary.sales || "";
+      el.salesPerHour.textContent = summary.hours > 0 && summary.sales > 0 ? money(summary.sales / summary.hours) : "$0";
+      el.salesPerOrder.textContent = summary.ordersPacked > 0 && summary.sales > 0 ? money(summary.sales / summary.ordersPacked) : "$0";
+      el.hoursByTask.innerHTML = metricLines(TASKS.map(task => [task, `${formatHours(summary.hoursByTask[task] || 0)} hr`]));
+      el.hoursByPerson.innerHTML = metricLines(state.people.map(person => [person, `${formatHours(summary.hoursByPerson[person] || 0)} hr`]));
+      el.throughput.innerHTML = metricLines(TASKS.map(task => {
+        const total = task === "Add to Inventory" ? summary.cardsAdded : task === "Pull Orders" ? summary.ordersPulled : summary.ordersPacked;
+        const hours = summary.hoursByTask[task] || 0;
+        const unit = task === "Add to Inventory" ? "cards/hr" : "orders/hr";
+        return [task, `${hours ? roundTo(total / hours, 1) : 0} ${unit}`];
+      }));
+      renderWeekEntries(summary.entries);
+    }
+
+    function renderWeekEntries(entries) {
+      if (!entries.length) {
+        el.weekEntries.innerHTML = `<div class="empty-state">No sessions logged for this week.</div>`;
+        return;
+      }
+      el.weekEntries.innerHTML = `
+        <div class="scroll-table">
+          <table class="table table-sm table-hover">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Person</th>
+                <th>Task</th>
+                <th>Hours</th>
+                <th>Count</th>
+                <th>Cost</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map(entry => `
+                <tr class="${taskClass(entry.taskType)}">
+                  <td>${friendlyDate(parseLocalDate(entry.date))}</td>
+                  <td>${escapeHtml(entry.person)}</td>
+                  <td>${escapeHtml(entry.taskType)}</td>
+                  <td>${formatHours(entryHours(entry))}</td>
+                  <td>${integer(entry.count)}</td>
+                  <td>${entry.taskType === "Add to Inventory" ? money(entryCost(entry)) : ""}</td>
+                  <td>
+                    <div class="d-flex gap-1 justify-content-end">
+                      <button class="btn btn-sm btn-outline-secondary icon-btn" type="button" title="Edit" aria-label="Edit" onclick="editEntry('${entry.id}')">
+                        <i data-lucide="pencil" width="16" height="16"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-secondary icon-btn" type="button" title="Delete" aria-label="Delete" onclick="deleteEntry('${entry.id}')">
+                        <i data-lucide="trash-2" width="16" height="16"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderHistory() {
+      const weeks = getAllWeekStarts();
+      if (!weeks.length) {
+        el.historyRows.innerHTML = `<tr><td colspan="9" class="text-center text-secondary py-4">No weekly history yet.</td></tr>`;
+        return;
+      }
+      el.historyRows.innerHTML = weeks.map(weekStart => {
+        const summary = summarizeWeek(weekStart);
+        return `
+          <tr>
+            <td>${friendlyDate(weekStart)}</td>
+            <td>${formatHours(summary.hours)}</td>
+            <td>${integer(summary.ordersPulled)}</td>
+            <td>${integer(summary.ordersPacked)}</td>
+            <td>${integer(summary.cardsAdded)}</td>
+            <td>${money(summary.inventoryCost)}</td>
+            <td>${summary.sales ? money(summary.sales) : ""}</td>
+            <td>${summary.hours && summary.sales ? money(summary.sales / summary.hours) : ""}</td>
+            <td>${summary.ordersPacked && summary.sales ? money(summary.sales / summary.ordersPacked) : ""}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function summarizeWeek(weekStart) {
+      const start = startOfWeek(weekStart);
+      const end = endOfWeek(start);
+      const entries = state.entries
+        .filter(entry => {
+          const date = parseLocalDate(entry.date);
+          return date >= start && date <= end;
+        })
+        .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
+      const summary = {
+        key: weekKey(start),
+        entries,
+        hours: 0,
+        ordersPulled: 0,
+        ordersPacked: 0,
+        cardsAdded: 0,
+        inventoryCost: 0,
+        sales: numberOrZero(state.weeklySales[weekKey(start)]),
+        hoursByTask: Object.fromEntries(TASKS.map(task => [task, 0])),
+        hoursByPerson: Object.fromEntries(state.people.map(person => [person, 0]))
+      };
+
+      for (const entry of entries) {
+        const hours = entryHours(entry);
+        summary.hours += hours;
+        summary.hoursByTask[entry.taskType] = (summary.hoursByTask[entry.taskType] || 0) + hours;
+        summary.hoursByPerson[entry.person] = (summary.hoursByPerson[entry.person] || 0) + hours;
+        if (entry.taskType === "Add to Inventory") {
+          summary.cardsAdded += numberOrZero(entry.count);
+          summary.inventoryCost += entryCost(entry);
+        }
+        if (entry.taskType === "Pull Orders") summary.ordersPulled += numberOrZero(entry.count);
+        if (entry.taskType === "Pack Orders") summary.ordersPacked += numberOrZero(entry.count);
+      }
+      return summary;
+    }
+
+    function getAllWeekStarts() {
+      const keys = new Set(Object.keys(state.weeklySales));
+      state.entries.forEach(entry => keys.add(weekKey(startOfWeek(parseLocalDate(entry.date)))));
+      return Array.from(keys)
+        .map(key => parseLocalDate(key))
+        .sort((a, b) => b - a);
+    }
+
+    function metricLines(items) {
+      return items.map(([label, value]) => `
+        <div class="metric-line">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>
+      `).join("");
+    }
+
+    function entryHours(entry) {
+      if (!entry.startTime || !entry.endTime) return 0;
+      const [sh, sm] = entry.startTime.split(":").map(Number);
+      const [eh, em] = entry.endTime.split(":").map(Number);
+      let start = sh * 60 + sm;
+      let end = eh * 60 + em;
+      if (end < start) end += 24 * 60;
+      return Math.max(0, (end - start) / 60);
+    }
+
+    function entryCost(entry) {
+      if (entry.taskType !== "Add to Inventory") return 0;
+      return numberOrZero(entry.count) * numberOrZero(entry.costPerCard);
+    }
+
+    function startOfWeek(date) {
+      const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const day = copy.getDay();
+      copy.setDate(copy.getDate() - day);
+      copy.setHours(0, 0, 0, 0);
+      return copy;
+    }
+
+    function endOfWeek(date) {
+      const end = startOfWeek(date);
+      end.setDate(end.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      return end;
+    }
+
+    function weekKey(date) {
+      return formatDate(startOfWeek(date));
+    }
+
+    function parseLocalDate(value) {
+      const [year, month, day] = String(value).split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function formatDate(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    function friendlyDate(date) {
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    }
+
+    function money(value) {
+      return numberOrZero(value).toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+    }
+
+    function integer(value) {
+      return Math.round(numberOrZero(value)).toLocaleString();
+    }
+
+    function formatHours(value) {
+      return roundTo(numberOrZero(value), 1).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    }
+
+    function numberOrZero(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function roundTo(value, places) {
+      const factor = 10 ** places;
+      return Math.round(numberOrZero(value) * factor) / factor;
+    }
+
+    function taskClass(taskType) {
+      if (taskType === "Add to Inventory") return "task-inventory";
+      if (taskType === "Pull Orders") return "task-pull";
+      return "task-pack";
+    }
+
+    function setSyncStatus(text, tone) {
+      el.syncStatus.className = `sync-pill ${tone || ""}`.trim();
+      const icon = tone === "bad" ? "cloud-alert" : tone === "ok" ? "cloud-check" : "cloud";
+      el.syncStatus.innerHTML = `<i data-lucide="${icon}" width="16" height="16"></i><span>${escapeHtml(text)}</span>`;
+      lucide.createIcons();
+    }
+
+    function showMessage(message, type) {
+      const alert = document.createElement("div");
+      alert.className = `alert alert-${type || "info"} alert-dismissible fade show`;
+      alert.innerHTML = `
+        <div>${escapeHtml(message)}</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      `;
+      el.toastStack.appendChild(alert);
+      setTimeout(() => bootstrap.Alert.getOrCreateInstance(alert).close(), 6500);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function escapeAttr(value) {
+      return String(value ?? "").replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+    }
+
+    window.editEntry = editEntry;
+    window.deleteEntry = deleteEntry;
+    window.removePerson = removePerson;
+  </script>
 </body>
 </html>
